@@ -113,6 +113,8 @@ int TSDB_range(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         /* case 5: return RedisModule_ReplyWithLongLong(ctx, 12341234); */ // Test false positive
         case 6:
             pRes = RMUtil_ParseArgs(argv, argc, 2, "llsl", &start_ts, &end_ts, &aggTypeStr, &time_delta );
+            if (!time_delta)
+                return RedisModule_ReplyWithError(ctx, "TSDB: time-delta must != 0");
             break;
         default:
             return RedisModule_WrongArity(ctx);
@@ -166,6 +168,7 @@ int TSDB_range(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
             RedisModule_ReplyWithDouble(ctx, sample->data);
             arraylen++;
         } else {
+            /* NOTE: modulo 0 is a no-no */
             timestamp_t current_timestamp = sample->timestamp - (sample->timestamp % time_delta);
             if (current_timestamp > last_agg_timestamp) {
                 if (last_agg_timestamp != 0) {
